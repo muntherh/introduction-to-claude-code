@@ -1,0 +1,35 @@
+{
+  "name": "introduction-to-claude-code",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Introduction to Claude Code \u2014 an interactive workshop.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
+    "preview": "vite preview",
+    "verify": "node scripts/verify.mjs http://127.0.0.1:4173",
+    "verify:fit": "node scripts/verify-fit.mjs http://127.0.0.1:4173",
+    "verify:interactions": "node scripts/verify-interactions.mjs http://127.0.0.1:4173"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.2.5",
+    "@fontsource-variable/jetbrains-mono": "^5.2.5",
+    "@fontsource-variable/noto-sans-arabic": "^5.2.5",
+    "framer-motion": "^12.23.24",
+    "lucide-react": "^0.545.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "tailwindcss": "^4.1.14",
+    "typescript": "~5.9.2",
+    "vite": "^7.3.2"
+  }
+}

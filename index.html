@@ -1,0 +1,25 @@
+<!doctype html>
+<!--
+  `lang` and `dir` are set again from src/deck.config.ts at startup, which is
+  the value that actually governs the deck. The attributes here matter for the
+  moment before the bundle runs: they stop the first paint from laying out in
+  the wrong direction.
+-->
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f0e0d" />
+    <meta name="description" content="Introduction to Claude Code — an interactive workshop." />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>Introduction to Claude Code</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      This presentation needs JavaScript enabled to run its interactive
+      examples.
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
