@@ -1,0 +1,794 @@
+<title>Claude Code Presenter Script</title>
+<style>
+  /* Dark-first: this is read in a dim room while presenting. A light theme is
+     there for reading it through beforehand on a bright screen. */
+  :root {
+    --ground: #0f0e0d;
+    --surface: #1b1917;
+    --surface-2: #242119;
+    --line: #3a352e;
+    --ink: #faf9f5;
+    --ink-2: #b0aea5;
+    --ink-3: #83817a;
+    --violet: #d4a27f;
+    --coral: #e2916f;
+    --coral-soft: rgba(217, 119, 87, 0.13);
+    --violet-soft: rgba(212, 162, 127, 0.13);
+    --shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+
+    /* Latin faces first, Arabic after: the browser walks the stack per glyph,
+       so one declaration serves both an English script and an Arabic one with
+       English product names inside it. */
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "SF Arabic", "Geeza Pro", "Noto Sans Arabic", "Helvetica Neue", Arial,
+      sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+
+  :root[data-theme="light"] {
+    --ground: #f7f5f0;
+    --surface: #ffffff;
+    --surface-2: #f0eee6;
+    --line: #ddd8cc;
+    --ink: #141413;
+    --ink-2: #4a4844;
+    --ink-3: #7d7a72;
+    --violet: #8a6244;
+    --coral: #b3562f;
+    --coral-soft: rgba(179, 86, 47, 0.08);
+    --violet-soft: rgba(138, 98, 68, 0.08);
+    --shadow: 0 1px 2px rgba(20, 20, 19, 0.06);
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --ground: #f7f5f0;
+      --surface: #ffffff;
+      --surface-2: #f0eee6;
+      --line: #ddd8cc;
+      --ink: #141413;
+      --ink-2: #4a4844;
+      --ink-3: #7d78a0;
+      --violet: #5f52c9;
+      --coral: #b3562f;
+      --coral-soft: rgba(179, 86, 47, 0.08);
+      --violet-soft: rgba(138, 98, 68, 0.08);
+      --shadow: 0 1px 2px rgba(20, 20, 19, 0.06);
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.7;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .wrap {
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1rem, 4vw, 2rem) 5rem;
+  }
+
+  .mast { display: flex; flex-direction: column; gap: 1rem; }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.7rem, 5vw, 2.7rem);
+    line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+
+  .facts { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+  .fact {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    font-variant-numeric: tabular-nums;
+    padding: 0.3rem 0.65rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--ink-2);
+    background: var(--surface);
+  }
+
+  .note { margin: 0; color: var(--ink-2); font-size: 1rem; max-width: 64ch; }
+  .note b { color: var(--ink); }
+
+  .preflight {
+    margin-top: 2rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.25rem 1.4rem;
+    box-shadow: var(--shadow);
+  }
+  .preflight h2 { margin: 0 0 0.75rem; font-size: 1.02rem; }
+  .preflight ul { margin: 0; padding-inline-start: 1.15rem; display: grid; gap: 0.45rem; }
+  .preflight li { color: var(--ink-2); font-size: 0.96rem; }
+  .preflight strong { color: var(--ink); font-weight: 700; }
+
+  .deck { display: grid; gap: 1.1rem; margin-top: 2.5rem; }
+
+  .slide {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .head {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.85rem;
+    padding: 0.95rem 1.25rem;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .num {
+    font-family: var(--mono);
+    font-size: 1.05rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--coral);
+  }
+
+  .name { font-size: 1.1rem; font-weight: 700; flex: 1; min-width: 8rem; }
+
+  .clock {
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-3);
+    white-space: nowrap;
+  }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border-radius: 5px;
+    white-space: nowrap;
+  }
+  .chip.talk { background: var(--violet-soft); color: var(--violet); }
+  .chip.net  { background: var(--coral-soft); color: var(--coral); }
+
+  .body { padding: 1.15rem 1.25rem 1.35rem; display: grid; gap: 1rem; }
+
+  /* The lines you say. Short paragraphs on purpose: each one is about one
+     breath, so the presenter's eye can grab it and their head can come up. */
+  .say {
+    border-inline-start: 3px solid var(--coral);
+    background: var(--coral-soft);
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+    border-start-end-radius: 10px;
+    border-end-end-radius: 10px;
+    padding: 0.95rem 1.15rem;
+    font-size: 1.09rem;
+    line-height: 1.8;
+  }
+  .say p { margin: 0 0 0.7rem; }
+  .say p:last-child { margin-bottom: 0; }
+  .say em {
+    display: block;
+    font-style: normal;
+    color: var(--ink-3);
+    font-size: 0.87rem;
+    margin: 0.55rem 0;
+  }
+
+  .lines { display: grid; gap: 0.4rem; margin: 0.6rem 0; }
+  .lines div { padding-inline-start: 0.8rem; border-inline-start: 2px solid var(--line); }
+
+  /* Stage direction — deliberately quieter than the speech. */
+  .do {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.6rem;
+    align-items: start;
+    color: var(--ink-2);
+    font-size: 0.95rem;
+  }
+  .do .tag {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--violet);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 0.16rem 0.45rem;
+    white-space: nowrap;
+    margin-top: 0.2rem;
+  }
+
+  .bridge {
+    color: var(--ink-2);
+    font-size: 1rem;
+    border-top: 1px dashed var(--line);
+    padding-top: 0.85rem;
+  }
+  .bridge b {
+    display: block;
+    color: var(--violet);
+    font-weight: 700;
+    font-size: 0.66rem;
+    font-family: var(--mono);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+
+  .block { margin-top: 2.5rem; }
+  .block > h2 {
+    font-size: 1.3rem;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--line);
+  }
+
+  .qa { display: grid; gap: 0.85rem; }
+  .qa details {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 0.85rem 1.1rem;
+    box-shadow: var(--shadow);
+  }
+  .qa summary { cursor: pointer; font-weight: 700; font-size: 1.02rem; list-style: none; }
+  .qa summary::-webkit-details-marker { display: none; }
+  .qa summary::before {
+    content: "?";
+    color: var(--coral);
+    font-family: var(--mono);
+    font-weight: 700;
+    margin-inline-end: 0.6rem;
+  }
+  .qa details[open] summary { margin-bottom: 0.7rem; }
+  .qa p { margin: 0; color: var(--ink-2); font-size: 1.02rem; line-height: 1.75; }
+
+  .risks { display: grid; gap: 0.8rem; }
+  .risk {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-inline-start: 3px solid var(--violet);
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+    border-start-end-radius: 12px;
+    border-end-end-radius: 12px;
+    padding: 0.85rem 1.1rem;
+  }
+  .risk h3 { margin: 0 0 0.3rem; font-size: 1.02rem; }
+  .risk p { margin: 0; color: var(--ink-2); font-size: 0.98rem; }
+
+  /* Commands and file names stay left-to-right even in an RTL script, for the
+     same reason they do in the deck: the bidi algorithm otherwise reorders a
+     line like `npm run dev -- --host` around its punctuation. */
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    direction: ltr;
+    unicode-bidi: isolate;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 0.08em 0.36em;
+  }
+
+  /* Wrap Latin words inside RTL prose in <bdi> so they keep their own order. */
+  bdi { unicode-bidi: isolate; }
+
+  :focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; border-radius: 4px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+
+
+<div class="wrap" dir="ltr" lang="en">
+
+  <header class="mast">
+    <h1>Introduction to Claude Code — Presenter Script</h1>
+    <div class="facts">
+      <span class="fact">16 slides</span>
+      <span class="fact">~60 min</span>
+      <span class="fact">12 interactive slides</span>
+      <span class="fact">1 slide needs internet</span>
+    </div>
+    <p class="note">
+      Everything in an <b>orange block</b> is written to be said out loud, exactly as it
+      is. The sentences are short on purpose — about one breath each — so you can
+      look down, take a line, and look back up at the room. The grey lines are for
+      you only. Do not read those.
+    </p>
+  </header>
+
+  <section class="preflight">
+    <h2>Before you start</h2>
+    <ul>
+      <li>Open the site and press <code>f</code> for full screen.</li>
+      <li>Press one arrow forward and one back, to check that it responds.</li>
+      <li><code>o</code> opens the slide list if you need to jump.</li>
+      <li><strong>The deck needs no internet.</strong> Everything in it is simulated locally.</li>
+      <li><strong>Slide 08 does.</strong> That is where the room installs Claude Code. Check the wifi before you begin.</li>
+      <li>Run <code>node -v</code> on your own machine. Anything under 18 will fail the install, and you want to know that before the room asks.</li>
+      <li>Have a real project folder open in a second terminal, in case someone asks you to try their idea.</li>
+    </ul>
+  </section>
+
+  <main class="deck">
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">01</span>
+        <span class="name">Welcome</span>
+        <span class="clock">2 min · 00→02</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“Welcome. This is an introduction to Claude Code.”</p>
+          <p>“Claude Code is an AI that works inside your project.”</p>
+          <p>“Not beside it in a browser tab. Inside it.”</p>
+          <p>“In the next hour you will install it.”</p>
+          <p>“You will talk to it, and let it change real files.”</p>
+          <p>“And you will not write a single line of code.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Press <code>f</code> for full screen before the room settles. Then press Start, or the right arrow.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“So let us start with the simplest question. What is it?”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">02</span>
+        <span class="name">What is Claude Code?</span>
+        <span class="chip talk">Audience</span>
+        <span class="clock">4 min · 02→06</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“Claude Code is Claude, running in your terminal.”</p>
+          <p>“It can read the project you are standing in, and change it.”</p>
+          <p>“Five things are worth knowing. Let us open three.”</p>
+          <div class="lines">
+            <div>“<b>A teammate, not a search box.</b> You say what you want. It does the work.”</div>
+            <div>“<b>It sits inside your project.</b> The folder you start it in is everything it can see.”</div>
+            <div>“<b>It asks before it acts.</b> Nothing on your machine changes without your yes.”</div>
+          </div>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Open three cards, not five. Leave two for the room to find later — a slide you did not exhaust is a slide they go back to.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“Two of those said the word terminal. Let us look at what that means.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">03</span>
+        <span class="name">It lives in your terminal</span>
+        <span class="clock">3 min · 06→09</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“This is the whole interface. One black window.”</p>
+          <p>“No tabs. No dashboard. No upload button.”</p>
+          <p>“You open it inside a folder, and that folder is the project.”</p>
+          <p>“You type plain English. There is nothing to memorise.”</p>
+          <p>“And it stays open while you work, so it remembers the last hour.”</p>
+          <em>Pause here. Look at the room before the next two lines.</em>
+          <p>“The terminal looks unfriendly. That is the only hard part of today.”</p>
+          <p>“Once it is open, everything after this is a conversation.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Point at the blinking cursor. Do not type anything yet — slide 08 is where the room opens their own, and doing it twice flattens that moment.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“So what actually happens when you type into that window?”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">04</span>
+        <span class="name">How it works</span>
+        <span class="clock">3 min · 09→12</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“Every task follows the same four beats.”</p>
+          <div class="lines">
+            <div>“<b>You ask.</b> One task, in plain words.”</div>
+            <div>“<b>It looks.</b> It opens the files that matter, first.”</div>
+            <div>“<b>It changes.</b> It edits, and shows you which lines moved.”</div>
+            <div>“<b>You check.</b> You say what is still wrong.”</div>
+          </div>
+          <p>“That last line becomes the next task. That is the loop.”</p>
+          <p>“Look at beat two. It reads before it writes.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Let the four steps reveal one at a time and do not talk over them. If you narrate ahead, the room reads step four while you are still on step one.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“That second beat is the whole difference. Let me show you it happening.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">05</span>
+        <span class="name">It reads your real project</span>
+        <span class="chip talk">Audience</span>
+        <span class="clock">4 min · 12→16</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“Here is a real project. Let us ask it something.”</p>
+          <em>Take a question from the room, or pick the one about the contact form.</em>
+          <p>“Watch what happens before the answer arrives.”</p>
+          <em>Stay quiet while the Read lines appear. The silence is the teaching.</em>
+          <p>“It opened two files. Then it answered.”</p>
+          <p>“A chat window cannot do that. It has never seen your files.”</p>
+          <p>“So it would have guessed. And it would have guessed wrong.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Click one question and let the reveal run to the end without commentary. If you have time, run a second one.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“Which raises the obvious question. When do you use which?”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">06</span>
+        <span class="name">A chat window vs Claude Code</span>
+        <span class="chip talk">Audience</span>
+        <span class="clock">4 min · 16→20</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“Same Claude underneath. The difference is access.”</p>
+          <p>“A chat window runs in a browser tab. Good for learning.”</p>
+          <p>“Claude Code runs inside your project. Good for changing it.”</p>
+          <p>“Four tasks. You tell me which one.”</p>
+          <em>Read each task out loud and wait for the room before you click.</em>
+          <p>“One question sorts all four.”</p>
+          <p>“Does it need to open my files?”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Ask for hands. Do not answer for them — this is the first slide where the room commits to an opinion, and it sets the tone for the rest of the hour.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“Before we install it, there is one more thing you need to trust.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">07</span>
+        <span class="name">You are in control</span>
+        <span class="chip talk">Audience</span>
+        <span class="clock">4 min · 20→24</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“Claude Code stops and asks before it touches anything.”</p>
+          <p>“Four requests. Let us refuse one on purpose.”</p>
+          <em>Press Refuse. Then wait a beat before the next line.</em>
+          <p>“Nothing happened. The file is exactly as it was.”</p>
+          <p>“Saying no is a normal answer, not a failure.”</p>
+          <p>“Read the line before you press yes.”</p>
+          <p>“Especially anything that installs something, or deletes something.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Refuse at least one, and make sure the room sees that nothing broke. A beginner who has watched a refusal do nothing is a beginner who will actually run the tool.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“Right. Open your laptops. This is where you start typing.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">08</span>
+        <span class="name">Install and start</span>
+        <span class="chip talk">Audience</span>
+        <span class="chip net">Internet</span>
+        <span class="clock">7 min · 24→31</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“Three lines. Everyone types them now.”</p>
+          <p>“The first installs it, once, on your machine.”</p>
+          <p>“The second goes into the folder you want to work on.”</p>
+          <p>“The third starts it.”</p>
+          <em>Wait for the whole room. Do not move on early.</em>
+          <p>“You need Node version eighteen or newer.”</p>
+          <p>“If the first line fails, that is almost always why.”</p>
+          <p>“To leave, type slash exit. Your files stay exactly as they were.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Run each line on screen as the room runs it, and walk between the desks. This is the slide where you lose people if you rush — everything after it assumes they are in.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“Everybody in? Good. Now ask it for something.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">09</span>
+        <span class="name">Your first session</span>
+        <span class="chip talk">Audience</span>
+        <span class="clock">5 min · 31→36</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“Type a request and watch the whole turn.”</p>
+          <p>“It reads. It decides. It edits. It reports back.”</p>
+          <em>Let the turn finish before you say the next line.</em>
+          <p>“Look at how much of that was reading.”</p>
+          <p>“That is not the tool being slow.”</p>
+          <p>“That is the tool refusing to guess.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Send one of the three suggestions first. Then ask the room for a request and type theirs — a turn they wrote lands harder than one you prepared.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“The request is the only part you control now. So let us make yours good.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">10</span>
+        <span class="name">What a good request looks like</span>
+        <span class="clock">5 min · 36→41</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“You do not control the code any more. You control the request.”</p>
+          <p>“So this is the one skill worth an hour of your life.”</p>
+          <div class="lines">
+            <div>“<b>Say what, and say where.</b> One task, and the exact place it goes.”</div>
+            <div>“<b>List what it must do.</b> Anything you leave out, it decides for you.”</div>
+            <div>“<b>Point at something that already exists.</b> That is the line a chat window cannot use.”</div>
+            <div>“<b>Say how you want to work.</b> For a beginner, that line is worth all the others.”</div>
+          </div>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Press Explain It and hover each line as you say it. Then press Compare Three and let the room pick before you reveal the answer.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“And that fourth line — how you want to work — has its own slide.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">11</span>
+        <span class="name">Read the plan first</span>
+        <span class="chip talk">Audience</span>
+        <span class="clock">4 min · 41→45</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“For anything bigger than a one-line change, ask for a plan.”</p>
+          <p>“This is the plan. It is a draft addressed to you.”</p>
+          <p>“Delete a step you did not want.”</p>
+          <p>“Reword one that is vague.”</p>
+          <em>Edit a step in front of them, then remove one.</em>
+          <p>“Fixing a wrong step is cheap.”</p>
+          <p>“Fixing a wrong pile of code is not.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Remove step one and let the room watch the numbering fix itself. That small thing is what makes the plan feel editable rather than official.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“That plan lasts one task. Some rules should last forever.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">12</span>
+        <span class="name">CLAUDE.md</span>
+        <span class="chip talk">Audience</span>
+        <span class="clock">4 min · 45→49</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“This is a file of house rules.”</p>
+          <p>“Claude Code reads it before every single task.”</p>
+          <p>“Try to break one.”</p>
+          <em>Click a rule. Then click a second one.</em>
+          <p>“It refuses, and it tells you which rule stopped it.”</p>
+          <p>“Write these once. They hold for every session after.”</p>
+          <p>“Put in how to run the project, the style you want, and what is off-limits.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Click two rules, not one. The room needs to see it refuse twice before they believe the first one was not a trick.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“Almost everything here is plain English. Five things are not.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">13</span>
+        <span class="name">Five commands to remember</span>
+        <span class="clock">3 min · 49→52</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“Five things to remember. Two of them will carry you.”</p>
+          <div class="lines">
+            <div>“<b>Slash init.</b> Run it once in a new project. It writes that rules file for you.”</div>
+            <div>“<b>Slash clear.</b> Use it when you move to a new task and the old one is just noise.”</div>
+            <div>“<b>Slash help.</b> Lists everything else. So there is nothing to memorise.”</div>
+          </div>
+          <p>“And escape, twice, stops it in the middle of a task.”</p>
+          <p>“You will want that more often than you expect.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Open <code>/init</code> and <code>/clear</code>. If you are behind, this is the slide to move through fastest.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“Last piece. Getting the work off your machine.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">14</span>
+        <span class="name">From a change to a pull request</span>
+        <span class="clock">3 min · 52→55</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“The part that frightens beginners most is git.”</p>
+          <p>“It is now the part you never have to do by hand.”</p>
+          <div class="lines">
+            <div>“<b>You describe the change.</b> Still plain English.”</div>
+            <div>“<b>It saves your work.</b> And writes the message describing it.”</div>
+            <div>“<b>It sends it to GitHub.</b> On a new branch, so the live site is safe.”</div>
+            <div>“<b>It opens the pull request.</b> Ready for someone to review.”</div>
+          </div>
+          <em>Say this last line only after the fourth step has landed.</em>
+          <p>“You never typed a git command. You described four outcomes.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Let the four beats reveal at their own pace. If someone wants to learn git properly, tell them to ask Claude Code to explain each step on their own project.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“Five quick questions, and then you are done.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">15</span>
+        <span class="name">Quick quiz</span>
+        <span class="chip talk">Audience</span>
+        <span class="clock">3 min · 55→58</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“Five questions. Nothing you have not already seen.”</p>
+          <p>“Say your answer out loud before I click.”</p>
+          <em>Read each question, wait for the room, then click.</em>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Wait before every click. Clicking first turns the quiz into a slideshow, and the room stops thinking.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“That is the whole workshop. Here is what you take home.”</div>
+      </div>
+    </article>
+
+    <article class="slide">
+      <div class="head">
+        <span class="num">16</span>
+        <span class="name">You learned</span>
+        <span class="clock">2 min · 58→60</span>
+      </div>
+      <div class="body">
+        <div class="say">
+          <p>“You installed it, talked to it, and changed a real project.”</p>
+          <p>“Six things to remember, and they are all on this screen.”</p>
+          <p>“Now go and break something small.”</p>
+          <p>“Open a folder you do not care about, and give it a task.”</p>
+          <p>“The first attempt is meant to be wrong.”</p>
+          <p>“Saying what is still wrong is the whole skill.”</p>
+          <p>“Copy that prompt, and run it tonight.”</p>
+        </div>
+        <div class="do">
+          <span class="tag">Do</span>
+          <span>Press Copy Prompt so they see it works, then tell them where the deck lives so they can copy it themselves afterwards.</span>
+        </div>
+        <div class="bridge"><b>Bridge</b>“Thank you. I will stay for questions.”</div>
+      </div>
+    </article>
+
+  </main>
+
+  <section class="block">
+    <h2>Questions you should expect</h2>
+    <div class="qa">
+      <details>
+        <summary>So we do not need to learn programming any more?</summary>
+        <p>“You need it less to start, and more to judge. Claude Code writes the code. You still decide whether it is right. Reading code just became the more valuable half of the job.”</p>
+      </details>
+      <details>
+        <summary>Is it free?</summary>
+        <p>“Claude Code is a paid product, and there are plans that include it. Prices change, so check claude.com slash claude-code rather than trusting my number from today.”</p>
+      </details>
+      <details>
+        <summary>Can it break my project?</summary>
+        <p>“It can change files, yes. That is why it asks first, and why you keep your work in git. With git, anything it did is one command away from being undone. Without git, be much more careful about what you approve.”</p>
+      </details>
+      <details>
+        <summary>Does it send my code to Anthropic?</summary>
+        <p>“It sends the parts it reads, because that is how it answers you. If your project is sensitive, check your organisation's policy before you point it at real code. That is a fair question to ask before you install anything.”</p>
+      </details>
+      <details>
+        <summary>Why the terminal? Can I not have a proper window?</summary>
+        <p>“Because your project already lives there — the files, git, and the commands that run it. Putting Claude Code in the terminal is what lets it touch all three. There are editor extensions too, but the terminal is the one to learn first.”</p>
+      </details>
+      <details>
+        <summary>What if it does something I did not ask for?</summary>
+        <p>“Tell it. That is the fourth beat of the loop. You say what is wrong and it fixes it, in the same conversation. You do not start over.”</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2>If something goes wrong</h2>
+    <div class="risks">
+      <div class="risk">
+        <h3>The internet drops</h3>
+        <p>Only slide 08 needs it, for the install. Every other slide is simulated locally and will behave exactly as normal. If the room cannot install, present slides 08 to 14 as a demo on your own machine and tell them to install at home — the starter prompt on slide 16 is what they run then.</p>
+      </div>
+      <div class="risk">
+        <h3>Someone's install fails</h3>
+        <p>It is almost always Node. Have them run <code>node -v</code>; anything under 18 is the cause. Pair them with a neighbour and keep going — debugging one laptop live loses the other twenty.</p>
+      </div>
+      <div class="risk">
+        <h3>You are running out of time</h3>
+        <p>Cut slide 13 first, then slide 14. <strong>Never cut 07, 08 or 10.</strong> Slide 07 is what makes a beginner willing to run the thing at all. Slide 08 is the only place they touch it themselves. Slide 10 is the one skill the workshop exists to teach.</p>
+      </div>
+      <div class="risk">
+        <h3>The room is silent</h3>
+        <p>Jump to slide 06, read one task out loud, and ask for a show of hands: chat window, or Claude Code? A closed question restarts a room much faster than an open one.</p>
+      </div>
+      <div class="risk">
+        <h3>The room is more expert than you expected</h3>
+        <p>Compress slides 02 to 07 into about ten minutes and spend what you save on 10, 11 and 12. Then ask someone with a real project to give you the request on slide 09 — an expert room engages with a real example, not a prepared one.</p>
+      </div>
+      <div class="risk">
+        <h3>A slide looks slightly cut off</h3>
+        <p>On a 1280×720 laptop, six slides carry one closing line below the fold. Scroll a nudge or press the down arrow. Nothing you need to click is ever below the fold — that is checked by <code>npm run verify:fit</code>.</p>
+      </div>
+    </div>
+  </section>
+
+</div>

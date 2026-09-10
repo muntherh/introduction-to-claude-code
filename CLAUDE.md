@@ -128,6 +128,7 @@ src/
   styles/          index.css — design tokens and base styles
   types/           shared TypeScript types
 scripts/           verify.mjs, verify-fit.mjs, verify-interactions.mjs
+docs/              presenter-script.html — what to say on every slide
 ```
 
 **All teaching copy lives in `src/data/lesson.ts`.** Wording changes should
@@ -252,8 +253,11 @@ Two bugs were found and fixed during that pass:
 2. **Not deployed anywhere.** `dist/` is a static bundle with a relative base,
    so Vercel / GitHub Pages / Netlify all work with no configuration. The
    vibe-coding-workshop repo has a GitHub Pages workflow worth copying.
-3. **No presenter script in the repo yet.** The `workshop` skill has a method
-   and a template (`references/presenter-script.md`,
-   `assets/script/template.html`) — Say / Do / Bridge per slide.
+3. **The presenter script is `docs/presenter-script.html`** — Say / Do /
+   Bridge per slide, timed to 60 minutes, in English (the owner chose English
+   over Arabic when asked). It is a standalone page: open it in a browser, or
+   read it on a phone while the laptop drives the deck. Retimings live in the
+   `.clock` spans; the two appendices at the bottom are the part presenters
+   actually reach for.
 4. **`npm install` may report advisories** inherited from the shell's
    dependency set. Not triaged.
