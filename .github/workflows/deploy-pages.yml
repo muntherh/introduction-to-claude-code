@@ -33,10 +33,6 @@ jobs:
       # The deck's vite base is "./", so dist/ works unchanged from the
       # project sub-path Pages serves it at. Nothing to configure.
 
-      # The presenter script rides along to /presenter-script.html, so a
-      # presenter can reach it from a phone without cloning anything.
-      - run: cp docs/presenter-script.html dist/presenter-script.html
-
       # enablement turns Pages on for the repo the first time this runs,
       # so the site does not need to be created by hand in Settings.
       - uses: actions/configure-pages@v5

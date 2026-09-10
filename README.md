@@ -41,6 +41,21 @@ npm run verify:interactions   # drives all 30 interactions end to end
 Arrows and Page keys move, space advances, `Home`/`End` jump, `o` opens the
 overview, `f` toggles fullscreen, `Escape` closes the overview.
 
+The presenter script — what to say on every slide — is
+`public/presenter-script.html`, and it ships with the site at
+`/presenter-script.html`. Read it on a phone while the laptop drives the deck.
+
+## Deploying
+
+`public/` is copied into `dist/` by the build itself, so every host gets the
+same files with no per-host copy step.
+
+- **GitHub Pages** — `.github/workflows/deploy-pages.yml` deploys on every push
+  to `main`.
+- **Vercel / Netlify** — import the repo. Both detect Vite and need no
+  configuration; `vercel.json` pins the settings anyway so the first import has
+  nothing to decide.
+
 ## Credits
 
 Built with the `workshop` skill, on the presentation shell developed for

@@ -132,7 +132,8 @@ src/
   styles/          index.css — design tokens and base styles
   types/           shared TypeScript types
 scripts/           verify.mjs, verify-fit.mjs, verify-interactions.mjs
-docs/              presenter-script.html — what to say on every slide
+public/            favicon + presenter-script.html (copied into dist/ by
+                   the build, so every host serves it)
 ```
 
 **All teaching copy lives in `src/data/lesson.ts`.** Wording changes should
@@ -257,11 +258,15 @@ Two bugs were found and fixed during that pass:
    vibe-coding-workshop repo has a GitHub Pages workflow worth copying. This is
    now the top open item.
 2. **`main` is untouched.** The work is on the feature branch — see §2.
-3. **The presenter script is `docs/presenter-script.html`** — Say / Do /
+3. **The presenter script is `public/presenter-script.html`** — Say / Do /
    Bridge per slide, timed to 60 minutes, in English (the owner chose English
-   over Arabic when asked). It is a standalone page: open it in a browser, or
-   read it on a phone while the laptop drives the deck. Retimings live in the
-   `.clock` spans; the two appendices at the bottom are the part presenters
-   actually reach for.
+   over Arabic when asked). It lives in `public/` deliberately: Vite copies
+   that directory into `dist/`, so the script ships to every host at
+   `/presenter-script.html`. It used to sit in `docs/` with the Pages workflow
+   copying it across, which meant Vercel served a 404 for it. Do not move it
+   back. Retimings live in the `.clock` spans; the two appendices at the bottom
+   are the part presenters actually reach for. It is also published as an
+   artifact — update that one by passing its URL, not by file path, since the
+   path changed.
 4. **`npm install` may report advisories** inherited from the shell's
    dependency set. Not triaged.
