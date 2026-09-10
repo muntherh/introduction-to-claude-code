@@ -42,22 +42,26 @@ rebalance these halves** without the owner asking.
 
 ## 2. Status
 
-The deck is **finished and verified**. See §10 for exactly what was verified.
+The deck is **finished, verified and pushed**. See §10 for exactly what was
+verified.
 
-**Not yet pushed to GitHub.** The repo `muntherh/introduction-to-claude-code`
-exists (the owner created it), and it is attached to the session, but pushes
-are refused:
+Everything lives on branch **`claude/happy-davinci-r8wzov`** of
+`muntherh/introduction-to-claude-code`, in two commits:
 
-> Claude doesn't have GitHub access to `muntherh/introduction-to-claude-code`
-> for your organization.
+```
+9c54f87  Add the presenter script
+17bbbf0  Build "Introduction to Claude Code" — a 16-slide interactive workshop
+```
 
-The fix is a dashboard action **the owner has to take**: open
-<https://github.com/apps/claude/installations/select_target> and add this
-repository to the Claude GitHub App's allowed list. Or reconnect GitHub under
-claude.ai Settings → Connectors. Once that is done, a push works normally —
-nothing about the code needs to change.
+`main` still holds only the repository's auto-generated README. Merging the
+branch into `main` is the owner's call — ask before doing it.
 
-Local history is on branch `claude/happy-davinci-r8wzov`.
+**If a push ever comes back 403** with "Claude doesn't have GitHub access to
+this repository", that is not a code problem. It means the repo is not in the
+Claude GitHub App's allowed list. The owner fixes it at
+<https://github.com/apps/claude/installations/select_target> by adding the
+repository, and the push then works unchanged. This happened once on the first
+push, because the repo was created after the session started.
 
 ## 3. Where this came from
 
@@ -248,11 +252,11 @@ Two bugs were found and fixed during that pass:
 
 ## 11. Known open items
 
-1. **Not pushed to GitHub** — see §2. Blocked on the owner granting the Claude
-   GitHub App access to this repo. This is the only blocking item.
-2. **Not deployed anywhere.** `dist/` is a static bundle with a relative base,
+1. **Not deployed anywhere.** `dist/` is a static bundle with a relative base,
    so Vercel / GitHub Pages / Netlify all work with no configuration. The
-   vibe-coding-workshop repo has a GitHub Pages workflow worth copying.
+   vibe-coding-workshop repo has a GitHub Pages workflow worth copying. This is
+   now the top open item.
+2. **`main` is untouched.** The work is on the feature branch — see §2.
 3. **The presenter script is `docs/presenter-script.html`** — Say / Do /
    Bridge per slide, timed to 60 minutes, in English (the owner chose English
    over Arabic when asked). It is a standalone page: open it in a browser, or
