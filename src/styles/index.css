@@ -1,0 +1,342 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Design tokens
+
+   Every colour in the deck resolves to one of these, so re-theming means
+   editing this block and nothing else. In practice you change the two accent
+   values and the deck becomes its own thing.
+
+   Keep the canvas dark unless asked otherwise: it is what the neutrals and
+   the glass surfaces below were tuned against, and it holds up on a
+   projector in a room where the lights cannot be fully dimmed.
+   ========================================================================== */
+@theme {
+  /* The canvas is Claude Code's own: a warm near-black, not a blue one.
+     Anthropic's brand dark (#141413) sits in the middle of this ramp, and
+     every neutral below was tuned against it rather than against navy.
+     The token names still say "navy" because the shell components reference
+     them; renaming them would touch every file for no visual gain. */
+  --color-void: #0f0e0d;
+  --color-navy-950: #161513;
+  --color-navy-900: #1e1c19;
+  --color-navy-850: #28251f;
+  --color-line: #3a352e;
+
+  --color-chalk: #faf9f5;
+  --color-mist: #b0aea5;
+  --color-dim: #7d7a72;
+
+  /* Anthropic's brand pair, warm end only. The saturated orange is the
+     dominant highlight (hero kicker, primary call to action, focus ring,
+     selection); the kraft tan is the quieter structural accent. Keeping both
+     warm is what makes the deck read as Claude Code from the back of a room
+     — a cool second accent dilutes exactly the thing this workshop is about. */
+  --color-accent: #d4a27f;
+  --color-accent-bright: #ebdbbc;
+  --color-accent-warm: #d97757;
+  --color-accent-warm-bright: #e9967a;
+
+  --color-ok: #788c5d;
+  --color-ok-bright: #9bb07c;
+  --color-warn: #d4a27f;
+  --color-bad: #cc6b52;
+
+  /* Latin face first, Arabic face second. A browser walks the stack per
+     glyph, so Latin text renders in Inter and Arabic text in Noto Sans
+     Arabic from the same declaration — an Arabic deck with an English
+     product name in the middle of a sentence gets both right, with no
+     per-element font switching. Drop the Arabic entry for a Latin-only
+     deck; it costs a font download that will never be used. */
+  --font-display: "Inter Variable", "Inter", "Noto Sans Arabic Variable",
+    "Noto Sans Arabic", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "Inter Variable", "Inter", "Noto Sans Arabic Variable",
+    "Noto Sans Arabic", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace,
+    SFMono-Regular, Menlo, Consolas, monospace;
+
+  --ease-cine: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ==========================================================================
+   Layout metrics
+   The giant hero wordmark is positioned with pure CSS math so the hero
+   content below it never needs JS measurement.
+   ========================================================================== */
+:root {
+  /* The hero wordmark is capped by viewport WIDTH and HEIGHT together: a
+     16:9 laptop at 1280x720 has the same aspect as 1920x1080 but far less
+     room once the fixed-size type and presenter controls are accounted for,
+     so the height cap is what keeps the whole hero on one screen.
+
+     Retune the width cap (the `vw` term) whenever the wordmark text changes.
+     A long two-word title is far wider than a short one, and for anything
+     past about eight characters it is the width, not the height, that
+     decides whether the opening slide fits. Check at 1280x720, not on a
+     large monitor — the large monitor always passes. */
+  --word-size: clamp(2rem, min(11.5vw, 19vh), 13rem);
+  --word-lh: 0.78;
+  --word-top: clamp(3.5rem, 8vh, 7rem);
+  --hero-pad-top: calc(
+    var(--word-top) + (var(--word-size) * var(--word-lh)) +
+      clamp(1rem, 3vh, 3rem)
+  );
+
+  /* Presenter chrome heights, used to keep slide content clear of controls. */
+  --chrome-top: clamp(3.5rem, 7vh, 4.75rem);
+  --chrome-bottom: clamp(5rem, 11vh, 7rem);
+
+  /* Fallback for browsers without dynamic viewport units. */
+  --vh-full: 100vh;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --vh-full: 100dvh;
+  }
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+html {
+  background-color: var(--color-void);
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+  /* The progress bar + dots communicate position; the raw scrollbar would
+     break the full-bleed presentation look on a projector. */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-void);
+  color: var(--color-chalk);
+  font-family: var(--font-sans);
+  font-synthesis-weight: none;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+/* Snap is great on a projector, but it fights tall content on short or
+   narrow screens, so it is opt-in by viewport. */
+@media (max-width: 767px), (max-height: 620px) {
+  html {
+    scroll-snap-type: none;
+  }
+}
+
+/* Beginners should read exactly the characters they typed: no `<-` turning
+   into an arrow, no `!=` turning into a not-equals glyph. */
+code,
+pre,
+kbd,
+.font-mono {
+  font-variant-ligatures: none;
+  font-feature-settings:
+    "liga" 0,
+    "calt" 0;
+}
+
+/* Code is left-to-right even inside an Arabic deck. Without this, the
+   bidirectional algorithm reorders a line like `npm run dev -- --host`
+   around the punctuation and the learner copies something that does not
+   run. `dir="ltr"` pins the whole block; `text-align: start` then means
+   "left" inside it, so the code still hugs the correct edge of its own
+   panel. Terminal output, file paths and URLs need the same treatment —
+   the shell's CodeBlock already carries it. */
+code,
+pre,
+kbd,
+.font-mono {
+  direction: ltr;
+  text-align: start;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent-warm) 82%, transparent);
+  color: #1a0e07;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent-warm);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+button {
+  font-family: inherit;
+}
+
+input,
+textarea {
+  font-family: inherit;
+}
+
+/* ==========================================================================
+   Components
+   ========================================================================== */
+@layer components {
+  .deck-slide {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  .overflow-y-auto,
+  .overflow-y-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(217, 119, 87, 0.38) transparent;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-y-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-track,
+  .overflow-y-scroll::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 999px;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-thumb,
+  .overflow-y-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(217, 119, 87, 0.46), rgba(212, 162, 127, 0.3));
+    border: 1px solid rgba(235, 219, 188, 0.16);
+    border-radius: 999px;
+    box-shadow:
+      inset 0 0 0 1px rgba(15, 14, 13, 0.25),
+      0 0 12px rgba(217, 119, 87, 0.10);
+    background-clip: padding-box;
+    transition:
+      background 0.2s var(--ease-cine),
+      box-shadow 0.2s var(--ease-cine);
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-thumb:hover,
+  .overflow-y-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(233, 150, 122, 0.58), rgba(235, 219, 188, 0.38));
+    box-shadow:
+      inset 0 0 0 1px rgba(15, 14, 13, 0.25),
+      0 0 16px rgba(217, 119, 87, 0.16);
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-thumb:active,
+  .overflow-y-scroll::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, rgba(217, 119, 87, 0.6), rgba(212, 162, 127, 0.42));
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-corner,
+  .overflow-y-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-button:vertical:start:decrement,
+  .overflow-y-scroll::-webkit-scrollbar-button:vertical:start:decrement,
+  .overflow-y-auto::-webkit-scrollbar-button:vertical:end:increment,
+  .overflow-y-scroll::-webkit-scrollbar-button:vertical:end:increment {
+    height: 6px;
+    width: 6px;
+    background-color: transparent;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 7px 7px;
+    border-radius: 999px;
+    opacity: 0.75;
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-button:vertical:start:decrement,
+  .overflow-y-scroll::-webkit-scrollbar-button:vertical:start:decrement {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none'%3E%3Cpath d='M2.5 6L5 3.5L7.5 6' stroke='%23b0aea5' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-button:vertical:end:increment,
+  .overflow-y-scroll::-webkit-scrollbar-button:vertical:end:increment {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none'%3E%3Cpath d='M2.5 4L5 6.5L7.5 4' stroke='%23b0aea5' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+
+  .overflow-y-auto::-webkit-scrollbar-button:vertical:start:decrement:hover,
+  .overflow-y-scroll::-webkit-scrollbar-button:vertical:start:decrement:hover,
+  .overflow-y-auto::-webkit-scrollbar-button:vertical:end:increment:hover,
+  .overflow-y-scroll::-webkit-scrollbar-button:vertical:end:increment:hover {
+    opacity: 1;
+    background-color: rgba(40, 37, 31, 0.6);
+  }
+
+  .glass {
+    background:
+      linear-gradient(
+        160deg,
+        rgb(255 255 255 / 0.055) 0%,
+        rgb(255 255 255 / 0.015) 46%,
+        rgb(255 255 255 / 0.04) 100%
+      ),
+      rgb(22 21 19 / 0.74);
+    border: 1px solid rgb(212 162 127 / 0.16);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .glass-hover {
+    transition:
+      border-color 0.35s var(--ease-cine),
+      background-color 0.35s var(--ease-cine),
+      transform 0.35s var(--ease-cine);
+  }
+
+  .glass-hover:hover {
+    border-color: rgb(217 119 87 / 0.42);
+  }
+}
+
+/* ==========================================================================
+   Utilities
+   ========================================================================== */
+@utility text-balance-tight {
+  text-wrap: balance;
+}
+
+@utility glow-accent {
+  box-shadow:
+    0 0 0 1px rgb(217 119 87 / 0.30),
+    0 18px 60px -18px rgb(217 119 87 / 0.45);
+}
+
+/* Screen-reader-only text that still supports focus. */
+@utility sr-only-focusable {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Motion preferences
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+    scroll-snap-type: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
